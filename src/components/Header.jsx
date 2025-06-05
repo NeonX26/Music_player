@@ -22,7 +22,6 @@ const Header = () => {
       // Prevent form submission if inside a form
       event.preventDefault();
       handleSearchAudio()
-      console.log("Search Query:", searchQuery);
     }
   };
 

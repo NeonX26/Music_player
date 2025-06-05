@@ -9,12 +9,16 @@ import Wishlists from './pages/Wishlists'
 import Setting from './pages/Setting'
 import { Grid } from '@mui/material'
 import Playlist from './pages/Playlist'
+import Player from './components/Player'
+import { useUser } from "./contexts/UserContext";
+
 
 const App = () => {
+  const { audioUrl ,songLoading,  } = useUser();
   return (
     <>
       <Header />
-      <Grid container spacing={2} sx={{  height: '100vh', overflow: 'hidden' }}>
+      <Grid container spacing={2} sx={{  overflow: 'hidden' }}>
         <Grid  size={2} sx={{
           position: 'relative',
           overflow: 'hidden',
@@ -22,7 +26,7 @@ const App = () => {
           <SideBar />
         </Grid>
 
-        <Grid size={10} sx={{marginTop: 9, overflowY: 'auto', height: '100vh'}}>
+        <Grid size={10} sx={{paddingTop: 9, overflowY: 'auto', height: '100vh'}}>
           {/* <Item>size=4</Item> */}
         <Routes>
           <Route path="/" element={<Home />} />
@@ -34,6 +38,8 @@ const App = () => {
         </Routes>
         </Grid>
       </Grid>
+      {songLoading && (<Player  />)}
+      {audioUrl && (<Player  />)}
     </>
   )
 }
