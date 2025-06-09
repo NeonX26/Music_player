@@ -1,10 +1,12 @@
 // src/pages/Playlist.jsx
 import React, { useState } from "react";
 import axios from "axios";
+import { useUser } from "../contexts/UserContext";
+
 
 function Playlist() {
+  const { setLoadedSongs,  } = useUser();
   const [playlistUrl, setPlaylistUrl] = useState("");
-  const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const fetchPlaylist = async () => {
@@ -12,10 +14,13 @@ function Playlist() {
 
     setLoading(true);
     try {
-      const res = await axios.get("http://192.168.29.144:4000/playlist-meta", {
+      const res = await axios.get("http://192.168.29.144:4000/api/getPlaylistMetaUrl", {
         params: { playlistUrl },
       });
-      setVideos(res.data);
+      // setVideos(res.data);
+      localStorage.setItem("Playlist", JSON.stringify(res.data));
+      await setLoadedSongs(res.data)
+      alert("Playlist fetched successfully");
       console.log(res.data);
     } catch (err) {
       alert("Failed to fetch playlist");
@@ -39,7 +44,7 @@ function Playlist() {
       </div>
 
       {loading && <p>Loading...</p>}
-
+{/* 
       {videos.length > 0 && (
         <div style={{ marginTop: 20, width: "100%", }}>
           {videos.map((video, index) => (
@@ -52,7 +57,7 @@ function Playlist() {
             </div>
           ))}
         </div>
-      )}
+      )} */}
     </div>
   );
 }

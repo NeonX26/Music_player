@@ -1,5 +1,5 @@
 // src/contexts/UserContext.jsx
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
 
 const UserContext = createContext();
@@ -10,71 +10,97 @@ export const useUser = () => {
 
 const UserProvider = ({ children }) => {
     const [searchQuery, setSearchQuery] = useState("");
-    const [audioUrl, setAudioUrl] = useState(null);
-    const [meta, setMeta] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [curSongIndex, setCurSongIndex] = useState(0);
     const [videos, setVideos] = useState([]);
+    const [songData, setSongData] = useState(null);
+    const [loadedSongs, setLoadedSongs] = useState([]);
+
+
+
     const [songLoading, setSongLoading] = useState(false);
-    const [bufferedSong, setBufferedSong] = useState([]);
-    const [bufferedMeta, setBufferedMeta] = useState([]);
 
-    const playlistUrl = "https://youtube.com/playlist?list=PLGRwzouMbL7WKIZSklBlIKHxAQRqrNEI4&si=FXb8ZvrZ7ohzP-ZP";
+    const playlistUrl = "https://youtube.com/playlist?list=PLLlb2C74bLzdu9dUe9QiuCMq-cLJtIbDZ&si=5QkBWHzr4GDf3hyB";
+    const tempVideoUrl = "https://www.youtube.com/watch?v=usvVGXFIpTM";
 
-    const loadSong = async (title) => {
-        console.log("Loading song:", title);
-        // if(title === bufferedMeta.title){
-        //     console.log("Already loaded song, skipping loadSong");
-        //     setAudioUrl(bufferedSong);
-        //     setMeta(bufferedMeta);
-        //     setBufferedSong([]);
-        //     setBufferedMeta([]);
-        //     return;
-        // }
+    useEffect(() => {
+        setLoading(true);
+        const storedPlaylist = localStorage.getItem("Playlist");
+        if (storedPlaylist) {
+            const parsedPlaylist = JSON.parse(storedPlaylist);
+            setLoadedSongs(parsedPlaylist);
+        } else {
+            setLoadedSongs([]); // Optional: set empty array if nothing is stored
+        }
+        setLoading(false);
+    }, [setLoadedSongs]);
 
 
-        setAudioUrl("");
-        setSongLoading(true)
-
-        const metaRes = await axios.get("http://192.168.29.144:4000/search-meta", {
-            params: { q: title },
-        });
-
-        setMeta(metaRes.data);
-        // console.log("Meta data:", metaRes.data);
-
-        const response = await axios.get("http://192.168.29.144:4000/search-audio", {
-            params: { q: title },
-        });
-        // setLoading(false);
-        // console.log(response.data.audioUrl);
-        setAudioUrl(response.data.audioUrl);
-        setSongLoading(false);
-        // handleBufferedSong()
+    const loadLocalPlaylist = (data, index) => {
+        if (loadedSongs) {
+            setSongData(data);
+            // setCurSongIndex(index);
+            // console.log("Loaded local playlist Song:", data, index);
+        } else {
+            console.warn("No local playlist Song found");
+        }
     }
 
+    const loadSong = async (original_url) => {
+        // console.log("Loading song:", original_url);
+        setSongLoading(true);
 
-    const handleSearchAudio = async () => {
-        if (!searchQuery) return;
         try {
-            setLoading(true);
-            const metaRes = await axios.get("http://192.168.29.144:4000/search-meta", {
-                params: { q: searchQuery },
-            });
-
-            const response = await axios.get("http://192.168.29.144:4000/search-audio", {
-                params: { q: searchQuery },
-            });
-            setLoading(false);
-            setMeta(metaRes.data);
-            setAudioUrl(response.data.audioUrl);
-            console.log(response);
-            console.log(metaRes);
+            fetchVideoMeta(original_url);
         } catch (err) {
-            alert("Failed to search and play song");
-            console.error(err);
+            console.error("Error loading song", err);
+        } finally {
+            setSongLoading(false);
         }
     };
+
+
+
+    // const handleSearchAudio = async () => {
+    //     if (!searchQuery) return;
+    //     try {
+    //         setLoading(true);
+    //         const metaRes = await axios.get("http://192.168.29.144:4000/search-meta", {
+    //             params: { q: searchQuery },
+    //         });
+
+    //         const audioRes = await axios.get("http://192.168.29.144:4000/search-audio", {
+    //             params: { q: searchQuery },
+    //         });
+
+    //         setMeta(metaRes.data);
+    //         setAudioUrl(audioRes.data.audioUrl);
+    //     } catch (err) {
+    //         alert("Failed to search and play song");
+    //         console.error(err);
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
+
+
+
+    const fetchVideoMeta = async (videoUrl) => {
+        setLoading(true);
+        // console.log("Fetching video meta for URL:", videoUrl);
+        try {
+            const res = await axios.get("http://192.168.29.144:4000/api/getVideoMeta", {
+                params: { videoUrl: videoUrl },
+            });
+            setSongData(res.data);
+            console.log(res.data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
 
     const fetchPlaylist = async () => {
@@ -87,66 +113,88 @@ const UserProvider = ({ children }) => {
             console.log(res.data);
         } catch (err) {
             alert("Failed to fetch playlist");
+            console.error(err);
         } finally {
             setLoading(false);
         }
     };
 
-
     const changeSong = (value) => {
-        if(bufferedSong && bufferedMeta && value){
-            console.log("Default loaded song")
-            setAudioUrl(bufferedSong);
-            setMeta(bufferedMeta);
-            setBufferedSong([]);
-            setBufferedMeta([]);
-            handleBufferedSong(curSongIndex )
+        // console.log("current Index - ", curSongIndex, "Updater - ", value)
+        const newIndex = curSongIndex + value;
+        if (newIndex < 0) {
+            console.warn("Song index out of bounds");
             return;
         }
-        loadSong(videos[curSongIndex + value]?.title || videos[0].title);
-        setCurSongIndex((prevIndex) => prevIndex + value);
-        console.log("current index", curSongIndex)
-    }
+        setCurSongIndex(newIndex);
+        const video = loadedSongs[newIndex];
+        loadLocalPlaylist(video, newIndex);
 
-    const handleBufferedSong = async(index) =>{
-        const title = videos[index].title ;
-        console.log('Next Song - ', videos[index].title)
+    };
 
-        const metaRes = await axios.get("http://192.168.29.144:4000/search-meta", {
-            params: { q: title },
-        });
+    // const changeSong = (value) => {
+    //     console.log("current Index - ", curSongIndex, "Updater - ", value)
+    //     const newIndex = curSongIndex + value;
+    //     if (newIndex < 0 || newIndex >= videos.length) {
+    //         console.warn("Song index out of bounds");
+    //         return;
+    //     }
+    //     const title = videos[newIndex]?.title;
+    //     if (!title) return;
 
-        setBufferedMeta(metaRes.data);
-        console.log("Buffered Meta data:", metaRes.data.title);
+    //     loadSong(newIndex, title);
+    // };
 
-        const response = await axios.get("http://192.168.29.144:4000/search-audio", {
-            params: { q: title },
-        });
-        setBufferedSong(response.data.audioUrl);
-        console.log("Next song Loaded...")
-        setCurSongIndex(index+1)
-    }
+    // const handleBufferedSong = async (index) => {
+    //     if (!videos[index]) return;
+
+    //     const title = videos[index].title;
+    //     console.log("Buffering song:", title);
+
+    //     try {
+    //         const metaRes = await axios.get("http://192.168.29.144:4000/search-meta", {
+    //             params: { q: title },
+    //         });
+
+    //         const audioRes = await axios.get("http://192.168.29.144:4000/search-audio", {
+    //             params: { q: title },
+    //         });
+
+    //         setBufferedSong({
+    //             index,
+    //             audioUrl: audioRes.data.audioUrl,
+    //             meta: metaRes.data
+    //         });
+
+    //         console.log("Buffered song:", {
+    //             index,
+    //             audioUrl: audioRes.data.audioUrl,
+    //             meta: metaRes.data
+    //         });
+
+    //     } catch (err) {
+    //         console.error("Error buffering song", err);
+    //     }
+    // };
 
 
     const value = {
         searchQuery,
         setSearchQuery,
-        handleSearchAudio,
-        audioUrl,
-        meta,
         loading,
         videos,
         fetchPlaylist,
-        loadSong,
-        changeSong,
         setCurSongIndex,
         curSongIndex,
         setSongLoading,
         songLoading,
-        handleBufferedSong
+        fetchVideoMeta,
+        songData,
+        loadSong,
+        setLoadedSongs,
+        loadLocalPlaylist,
+        changeSong
     };
-
-    
 
     return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };

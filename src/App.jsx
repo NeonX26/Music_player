@@ -14,7 +14,7 @@ import { useUser } from "./contexts/UserContext";
 
 
 const App = () => {
-  const { audioUrl ,songLoading,  } = useUser();
+  const { songData ,songLoading,  } = useUser();
   return (
     <>
       <Header />
@@ -39,7 +39,7 @@ const App = () => {
         </Grid>
       </Grid>
       {songLoading && (<Player  />)}
-      {audioUrl && (<Player  />)}
+      {songData && (<Player  />)}
     </>
   )
 }

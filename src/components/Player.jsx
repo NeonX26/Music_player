@@ -5,8 +5,8 @@ import "react-h5-audio-player/lib/styles.css";
 import { useUser } from "../contexts/UserContext";
 
 
-const Player = () => {
-    const { audioUrl, meta, changeSong, songLoading } = useUser();
+const Player = ({url}) => {
+    const {  changeSong, songLoading, songData} = useUser();
 
     return (
         <Box sx={{
@@ -25,12 +25,12 @@ const Player = () => {
                     <CircularProgress size="3rem" />
                 </Box>
             ) :
-                <img src={meta.thumbnail} alt={meta.title} width='250px' style={{objectFit: 'cover'}}/>
+                <img src={songData.thumbnail} alt={songData.id} width='250px' style={{objectFit: 'cover'}}/>
             }
 
             <AudioPlayer
                 autoPlay
-                src={audioUrl || null}
+                src={songData.audioUrl || url}
                 onPlay={() => console.log("Playing audio")}
                 showSkipControls={true}
                 customAdditionalControls={['LOOP']}
